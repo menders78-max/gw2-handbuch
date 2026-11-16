@@ -72,6 +72,7 @@ const pct=c=>S.maps.length?Math.round(100*S.maps.filter(m=>S.chars[c].done.inclu
 const open=c=>S.maps.filter(m=>!S.chars[c].done.includes(m.id));
 const wcp=c=>{const w=S.chars[c].wc;return w!=null&&w!==''?+w:pct(c)};
 let cand=null;
+const regs=()=>[...new Set(S.maps.map(m=>m.r))];
 const rot=c=>open(c).filter(m=>S.rotAll||m.a===c).sort((a,b)=>b.p-a.p);
 const bar=p=>`<div class=bar><i style="width:${p}%"></i></div>`;
 const gold=v=>`${Math.floor(v/1e4).toLocaleString('de-DE')} <small>g</small> ${Math.floor(v%1e4/100)} <small>s</small> ${v%100} <small>k</small>`;
@@ -84,6 +85,7 @@ rot(){const n=names();if(!n.length)return emp;if(!n.includes(sel))sel=n[0];const
 return `<select data-sel>${n.map(c=>`<option ${c==sel?'selected':''}>${E(c)}</option>`).join('')}</select> <label style="display:inline"><input type=checkbox data-all ${S.rotAll?'checked':''}> alle offenen Karten statt nur zugeteilte</label>
 <div class=card style="margin-top:12px"><b>${p} % Weltabschluss</b>${bar(p)}<small>${S.maps.length-open(sel).length} von ${S.maps.length} Karten erledigt – erledigte werden nie eingeplant.</small><label>Weltabschluss laut Spiel (%) – leer = aus Kartenliste berechnen<input type=number min=0 max=100 data-c="${E(sel)}" data-f=wc value="${o.wc??''}" style="width:90px"></label></div>
 <div class=card><h3>Kartenrotation</h3><ol>${r.map(m=>`<li><label style="display:inline;color:var(--tx);font-size:15px"><input type=checkbox data-done="${m.id}"> ${E(m.n)}</label> <small>${E(m.r)} · Prio ${'★'.repeat(m.p)}${m.a&&m.a!==sel?' · zugeteilt: '+E(m.a):''}</small></li>`).join('')||'<li>Nichts offen oder nichts zugeteilt – siehe „Karten“.</li>'}</ol></div>
+<div class=card><h3>Regionen abhaken</h3><small>Markiert alle Karten einer Region für ${E(sel)} als erledigt (oder öffnet sie wieder). Einzelne Karten korrigierst du im Tab „Karten“.</small><div class=g2 style="margin-top:8px">${regs().map((g,i)=>{const ms=S.maps.filter(m=>m.r==g),d=ms.filter(m=>o.done.includes(m.id)).length;return `<label style="color:var(--tx);margin:2px 0"><input type=checkbox data-rg=${i} ${d==ms.length?'checked':''}> ${E(g)} <small>${d}/${ms.length}</small></label>`}).join('')}</div></div>
 <div class=card><h3>Build & Tasten</h3><select data-c="${E(sel)}" data-f=build><option value="">– kein Build –</option>${S.builds.map(x=>`<option value="${x.id}" ${x.id==o.build?'selected':''}>${E(x.name)}</option>`).join('')}</select>${b?`<p><b>${E(b.weapons)}</b><br><small style="white-space:pre-line">${E(b.keys)}</small></p>`:''}</div>
 <div class=card><h3>Notizen</h3><label>Reittiere<textarea data-c="${E(sel)}" data-f=mounts>${E(o.mounts)}</textarea></label><label>Fehlende Freischaltungen<textarea data-c="${E(sel)}" data-f=unl>${E(o.unl)}</textarea></label></div>`},
 map(){const n=names();return `<button data-auto>Offene Karten automatisch verteilen</button> <small>(gleichmäßig auf Charaktere, bei denen die Karte noch offen ist)</small><div class=wrap><table><tr><th>Karte<th>Prio<th>Zuteilung${n.map(c=>`<th class=v title="${E(c)}">${E(c.slice(0,9))}`).join('')}<th></tr>`+S.maps.map((m,i)=>{const all=n.length&&n.every(c=>S.chars[c].done.includes(m.id));return `<tr class="${all?'dn':''}"><td>${E(m.n)}<br><small>${E(m.r)}${all?' · überall erledigt':''}</small><td><select data-m=${i} data-f=p>${[1,2,3].map(x=>`<option value=${x} ${x==m.p?'selected':''}>${'★'.repeat(x)}</option>`).join('')}</select><td><select data-m=${i} data-f=a><option value="">–</option>${n.map(c=>`<option ${c==m.a?'selected':''}>${E(c)}</option>`).join('')}</select>${n.map(c=>`<td><input type=checkbox data-x="${E(c)}|${m.id}" ${S.chars[c].done.includes(m.id)?'checked':''}>`).join('')}<td><button data-delmap=${i} title="Karte entfernen">✕</button>`}).join('')+`</table></div>${cl()}<div class=card><h3>Karten hinzufügen</h3><small>Eine pro Zeile: „Region|Name|Prio 1–3“ oder nur der Name.</small><textarea id=bm placeholder="Path of Fire|Vabbi|2"></textarea><button data-addmaps>Hinzufügen</button></div>`},
@@ -141,6 +143,7 @@ document.addEventListener('change',e=>{const t=e.target,d=t.dataset,v=t.type=='c
 if('sel' in d){sel=v;r()}
 else if(d.cr!=null){document.querySelectorAll('[data-g="'+d.cr+'"]').forEach(x=>{x.checked=v;cand[x.dataset.cm].on=v})}
 else if(d.cm!=null){cand[d.cm].on=v}
+else if(d.rg!=null){const g=regs()[d.rg],o=S.chars[sel],ids=S.maps.filter(m=>m.r==g).map(m=>m.id);o.done=o.done.filter(x=>!ids.includes(x));if(v)o.done.push(...ids);lg(`${sel}: Region ${g} ${v?'komplett erledigt':'wieder geöffnet'} (jetzt ${pct(sel)} %)`);r()}
 else if('all' in d){S.rotAll=v;lg('Rotation zeigt '+(v?'alle offenen Karten':'nur zugeteilte Karten'));r()}
 else if(d.done)tg(sel,d.done,true);
 else if(d.x){const[c,id]=d.x.split('|');tg(c,id,v)}
