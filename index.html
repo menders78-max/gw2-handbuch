@@ -38,7 +38,7 @@ ol{padding-left:22px}li{margin:5px 0}
 .t{font-weight:700;font-size:17px;width:100%}
 .log div{padding:3px 0;border-bottom:1px solid var(--br);font-size:13px}
 </style></head><body>
-<header><h1>Mein GW2-Handbuch</h1><nav id="nv"></nav></header><main id="v"></main>
+<header><h1>Mein GW2-Handbuch</h1><div id=gs class=mu style="margin:-6px 0 8px"></div><nav id="nv"></nav></header><main id="v"></main>
 <script>
 /* Daten: ein JSON-Objekt (S) in localStorage. Neue Tabs: Eintrag in T + Funktion in V ergänzen. */
 const API='https://api.guildwars2.com',$=s=>document.querySelector(s);
@@ -79,7 +79,7 @@ const bd=id=>S.builds.find(b=>b.id===id);
 const emp='<div class=card>Noch keine Charaktere. Trage unter „Protokoll & Sync“ deinen API-Key ein und synchronisiere – oder lege einen Charakter manuell an.</div>';
 const V={
 ov(){const a=S.acc,n=names(),avg=n.length?Math.round(n.reduce((s,c)=>s+wcp(c),0)/n.length):0;
-return `<div class=grid>`+[['Gold',a.gold!=null?gold(a.gold):'–'],['Astraler Ruhm',a.aa??'–'],['Erfolgspunkte (berechnet)',a.ap??'–'],['Ø Weltabschluss',avg+' %']].map(([k,v])=>`<div class=card><small>${k}</small><b class=big>${v}</b></div>`).join('')+`</div><p class=mu>Stand: ${a.t?new Date(a.t).toLocaleString('de-DE'):'noch nicht synchronisiert'} · ${n.length} Charaktere · Weltabschluss = dein eingetragener Wert, sonst erledigte Karten der Liste</p>`+(n.length?`<div class=grid>`+n.map(c=>{const o=S.chars[c],r=rot(c)[0],b=bd(o.build);return `<div class=card><b>${E(c)}</b><br><small>${PR[o.prof]||E(o.prof)} · Stufe ${o.lvl||'?'}</small>${bar(wcp(c))}<small>${wcp(c)} % Weltabschluss · ${open(c).length} Karten offen</small><br>Nächste Karte: <b>${r?E(r.n):'–'}</b><br><small>Build: ${b?E(b.name):'–'}</small><br><button data-go="${E(c)}">Rotation öffnen</button></div>`}).join('')+`</div>`:emp)},
+return `<div class=grid>`+[['Gold',a.gold!=null?gold(a.gold):'–'],['Astraler Ruhm',a.aa??'–'],['Erfolgspunkte (berechnet)',a.ap??'–'],['Ø Weltabschluss',avg+' %']].map(([k,v])=>`<div class=card><small>${k}</small><b class=big>${v}</b></div>`).join('')+`</div><p class=mu>Stand: ${a.t?new Date(a.t).toLocaleString('de-DE'):'noch nicht synchronisiert'} · ${n.length} Charaktere · Weltabschluss = dein eingetragener Wert, sonst erledigte Karten der Liste · <button data-resync>Jetzt aktualisieren</button></p>`+(n.length?`<div class=grid>`+n.map(c=>{const o=S.chars[c],r=rot(c)[0],b=bd(o.build);return `<div class=card><b>${E(c)}</b><br><small>${PR[o.prof]||E(o.prof)} · Stufe ${o.lvl||'?'}</small>${bar(wcp(c))}<small>${wcp(c)} % Weltabschluss · ${open(c).length} Karten offen</small><br>Nächste Karte: <b>${r?E(r.n):'–'}</b><br><small>Build: ${b?E(b.name):'–'}</small><br><button data-go="${E(c)}">Rotation öffnen</button></div>`}).join('')+`</div>`:emp)},
 rot(){const n=names();if(!n.length)return emp;if(!n.includes(sel))sel=n[0];const o=S.chars[sel],r=rot(sel),p=wcp(sel),b=bd(o.build);
 return `<select data-sel>${n.map(c=>`<option ${c==sel?'selected':''}>${E(c)}</option>`).join('')}</select> <label style="display:inline"><input type=checkbox data-all ${S.rotAll?'checked':''}> alle offenen Karten statt nur zugeteilte</label>
 <div class=card style="margin-top:12px"><b>${p} % Weltabschluss</b>${bar(p)}<small>${S.maps.length-open(sel).length} von ${S.maps.length} Karten erledigt – erledigte werden nie eingeplant.</small><label>Weltabschluss laut Spiel (%) – leer = aus Kartenliste berechnen<input type=number min=0 max=100 data-c="${E(sel)}" data-f=wc value="${o.wc??''}" style="width:90px"></label></div>
@@ -107,7 +107,7 @@ function r(){$('#nv').innerHTML=T.map(([k,l])=>`<button data-tab=${k} class="${k
 function tg(c,id,v){const o=S.chars[c],m=S.maps.find(x=>x.id==id);o.done=o.done.filter(x=>x!=id);if(v)o.done.push(id);lg(`${c}: ${m.n} ${v?'abgeschlossen':'wieder geöffnet'} (jetzt ${pct(c)} %)`);r()}
 function auto(){const n=names(),k={};n.forEach(c=>k[c]=0);let z=0;[...S.maps].sort((a,b)=>b.p-a.p).forEach(m=>{const o=n.filter(c=>!S.chars[c].done.includes(m.id)).sort((a,b)=>k[a]-k[b]||wcp(b)-wcp(a));m.a=o[0]||'';if(o[0]){k[o[0]]++;z++}});lg(`Karten automatisch verteilt (${z} offene)`);r()}
 async function g(p,auth=1){const x=await fetch(API+p+(p.includes('?')?'&':'?')+'lang=de'+(auth?'&access_token='+S.key:''));if(!x.ok)throw new Error(p.split('?')[0]+' → '+x.status);return x.json()}
-async function sync(){const st=$('#st'),er=[],old={...S.acc},t=f=>f().catch(e=>er.push(e.message));st.textContent='Lade …';let dap=0;
+async function sync(){const msg=m=>[$('#st'),$('#gs')].forEach(x=>x&&(x.textContent=m)),er=[],old={...S.acc},t=f=>f().catch(e=>er.push(e.message));msg('Synchronisiere …');let dap=0;
 await Promise.all([
 t(async()=>{const cs=await g('/v2/characters?ids=all');cs.forEach(c=>{let o=S.chars[c.name];if(!o){o=S.chars[c.name]={done:[],mounts:'',unl:'',build:''};lg('Charakter neu: '+c.name)}o.prof=c.profession;o.lvl=c.level});
 await Promise.all(cs.map(c=>t(async()=>{const e=encodeURIComponent(c.name);S.chars[c.name].eq=(await g(`/v2/characters/${e}/equipmenttabs?tabs=all`)).map(x=>x.name||'Vorlage '+x.tab);S.chars[c.name].bt=(await g(`/v2/characters/${e}/buildtabs?tabs=all`)).map(x=>x.build.name||'Vorlage '+x.tab)})))}),
@@ -122,11 +122,12 @@ if(old.aa!=null&&old.aa!==S.acc.aa)lg(`Astraler Ruhm: ${old.aa} → ${S.acc.aa}`
 if(old.ap!=null&&old.ap!==S.acc.ap)lg(`Erfolgspunkte: ${old.ap} → ${S.acc.ap}`);
 if(old.gold!=null&&old.gold!==S.acc.gold)lg(`Gold: ${Math.floor(old.gold/1e4)} g → ${Math.floor(S.acc.gold/1e4)} g`);
 lg('Synchronisierung'+(er.length?' mit Fehlern: '+er.join('; '):' erfolgreich'));r();
-$('#st').textContent=er.length?'Teilweise fehlgeschlagen: '+er.join('; ')+' (403 = Recht fehlt am Key, 401 = Key ungültig)':'Fertig.'}
+msg(er.length?'Teilweise fehlgeschlagen: '+er.join('; ')+' (403 = Recht fehlt am Key, 401 = Key ungültig)':'Synchronisiert: '+new Date().toLocaleTimeString('de-DE'))}
 document.addEventListener('click',e=>{const d=e.target.dataset;
 if(d.tab){tab=d.tab;r()}
 else if(d.go){tab='rot';sel=d.go;r()}
 else if('auto' in d)auto();
+else if('resync' in d){if(S.key)sync();else{tab='set';r()}}
 else if('loadmaps' in d)lm();
 else if('applymaps' in d)am();
 else if(d.delmap!=null){lg('Karte entfernt: '+S.maps.splice(+d.delmap,1)[0].n);r()}
@@ -148,4 +149,5 @@ else if(d.m!=null){const m=S.maps[d.m];m[d.f]=d.f=='p'?+v:v;lg(`Karte ${m.n}: ${
 else if(d.b!=null){S.builds[d.b][d.f]=v;lg(`Build „${S.builds[d.b].name}“: ${d.f} geändert`)}
 else if('imp' in d&&t.files[0]){t.files[0].text().then(x=>{S=JSON.parse(x);lg('Sicherung importiert');r()}).catch(()=>alert('Datei ungültig.'))}});
 r();
+if(S.key&&(!S.acc.t||Date.now()-S.acc.t>3e5))sync();
 </script></body></html>
