@@ -125,6 +125,7 @@ fs(){const m=S.mounts,n=names().filter(c=>S.chars[c].unl||S.chars[c].mounts);ret
 <div class=card><h3>Eigene Notizen je Charakter</h3>${n.map(c=>`<p style="margin:6px 0"><b>${E(c)}</b><br><small>${S.chars[c].mounts?'Reittiere: '+E(S.chars[c].mounts)+'<br>':''}${S.chars[c].unl?'Fehlende Freischaltungen: '+E(S.chars[c].unl):''}</small></p>`).join('')||'<small>Keine Notizen. Du kannst sie im Tab „Rotation“ pflegen.</small>'}</div>`},
 set(){return `<div class=card><h3>API-Key</h3><small>Wird nur in diesem Browser gespeichert. Empfohlene Rechte: account, characters, progression, wallet, builds, inventories, unlocks.</small><input id=k type=password value="${E(S.key)}" placeholder="API-Key einfügen"><p><button data-sync>Speichern & synchronisieren</button> <span id=st class=mu></span></p></div>
 <div class=card><h3>Charakter manuell</h3><input id=nc placeholder="Charaktername" style="width:220px"> <button data-addc>Anlegen</button></div>
+<div class=card><h3>Erfolgspunkte abgleichen</h3><small>Der Wert wird aus deinen Erfolgen berechnet und kann leicht abweichen. Trage hier den Wert aus dem Spiel ein, dann rechnet das Handbuch ab jetzt von diesem Ausgangswert aus weiter.</small><p><input id=apv type=number min=0 placeholder="Erfolgspunkte laut Spiel" style="width:220px"> <button data-apcal>Abgleichen</button></p></div>
 <div class=card><h3>Sicherung</h3><button data-exp>Exportieren (JSON)</button> <input type=file data-imp accept=.json></div>
 <div class="card log"><h3>Änderungsprotokoll</h3>${S.log.map(l=>`<div><small>${new Date(l.t).toLocaleString('de-DE')}</small> ${E(l.m)}</div>`).join('')||'<small>Noch keine Änderungen.</small>'}</div>`}};
 function cl(){let h='<div class=card><h3>Kartenliste aus der API</h3><small>Lädt Tyria-Karten mit deutschen Namen. Städte und Karten ohne Weltabschluss-Relevanz wählst du ab.</small><p><button data-loadmaps>Karten laden</button></p>';
@@ -168,8 +169,8 @@ S.builds.push({id,name:b.name||(PR[o.prof]||'')+' – '+sel,prof:[PR[o.prof],ss[
 function r(){$('#nv').innerHTML=T.map(([k,l])=>`<button data-tab=${k} class="${k==tab?'on':''}">${l}</button>`).join('');$('#v').innerHTML=V[tab]()}
 function tg(c,id,v){const o=S.chars[c],m=S.maps.find(x=>x.id==id);o.done=o.done.filter(x=>x!=id);if(v)o.done.push(id);lg(`${c}: ${m.n} ${v?'abgeschlossen':'wieder geöffnet'} (jetzt ${pct(c)} %)`);r()}
 function auto(){const n=names(),k={};n.forEach(c=>k[c]=0);let z=0;[...S.maps].sort((a,b)=>b.p-a.p).forEach(m=>{const o=n.filter(c=>!S.chars[c].done.includes(m.id)).sort((a,b)=>k[a]-k[b]||wcp(b)-wcp(a));m.a=o[0]||'';if(o[0]){k[o[0]]++;z++}});lg(`Karten automatisch verteilt (${z} offene)`);r()}
-async function g(p,auth=1){const x=await fetch(API+p+(p.includes('?')?'&':'?')+'lang=de'+(auth?'&access_token='+S.key:''));if(!x.ok)throw new Error(p.split('?')[0]+' → '+x.status);return x.json()}
-async function sync(){const msg=m=>[$('#st'),$('#gs')].forEach(x=>x&&(x.textContent=m)),er=[],old={...S.acc},t=f=>f().catch(e=>er.push(e.message));msg('Synchronisiere …');let dap=0;
+async function g(p,auth=1,n=0){const x=await fetch(API+p+(p.includes('?')?'&':'?')+'lang=de'+(auth?'&access_token='+S.key:''));if(!x.ok){if(n<2&&(x.status==429||x.status>=500)){await new Promise(r=>setTimeout(r,1200*(n+1)));return g(p,auth,n+1)}throw new Error(p.split('?')[0]+' → '+x.status)}return x.json()}
+async function sync(){const msg=m=>[$('#st'),$('#gs')].forEach(x=>x&&(x.textContent=m)),er=[],old={...S.acc},t=f=>f().catch(e=>er.push(e.message));msg('Synchronisiere …');let dap=0,dok=0,aok=0;
 await Promise.all([
 t(async()=>{const cs=await g('/v2/characters?ids=all');cs.forEach(c=>{let o=S.chars[c.name];if(!o){o=S.chars[c.name]={done:[],mounts:'',unl:'',build:''};lg('Charakter neu: '+c.name)}o.prof=c.profession;o.lvl=c.level;o.cr=c.created;o.dt=c.deaths;o.lm=c.last_modified;o.ti=c.title;o.gu=c.guild});
 await Promise.all(cs.map(c=>{const e=encodeURIComponent(c.name),o=S.chars[c.name],u=p=>`/v2/characters/${e}/${p}`;return Promise.all([
@@ -178,10 +179,10 @@ t(async()=>{const bt=await g(u('buildtabs?tabs=all')),a=bt.find(x=>x.is_active)|
 t(async()=>{const v=await g(u('inventory'));let n=0,f=0;(v.bags||[]).forEach(z=>{if(z){n+=z.size;f+=(z.inventory||[]).filter(x=>!x).length}});o.fr=f;o.sl=n}),
 t(async()=>{o.cf=(await g(u('crafting'))).crafting})])}))}),
 t(async()=>{const w=await g('/v2/account/wallet'),f=i=>(w.find(x=>x.id===i)||{}).value;S.acc.gold=f(1);S.acc.aa=f(63)}),
-t(async()=>{const a=await g('/v2/account');dap=(a.daily_ap||0)+(a.monthly_ap||0);S.acc.name=a.name}),
+t(async()=>{const a=await g('/v2/account');dap=(a.daily_ap||0)+(a.monthly_ap||0);S.acc.name=a.name;dok=1}),
 t(async()=>{const a=await g('/v2/account/achievements'),d={},ch=[];for(let i=0;i<a.length;i+=150)ch.push(a.slice(i,i+150).map(x=>x.id).join(','));
 (await Promise.all(ch.map(c=>g('/v2/achievements?ids='+c,0)))).flat().forEach(x=>d[x.id]=x);let s=0;
-a.forEach(x=>{const q=d[x.id];if(!q||!q.tiers)return;let b=0,all=0;q.tiers.forEach(y=>{all+=y.points;if(x.done||x.current>=y.count)b+=y.points});b+=(x.repeated||0)*all;s+=q.point_cap!=null?Math.min(b,q.point_cap):b});S.acc.apb=s}),
+a.forEach(x=>{const q=d[x.id];if(!q||!q.tiers)return;let b=0,all=0;q.tiers.forEach(y=>{all+=y.points;if(x.done||x.current>=y.count)b+=y.points});b+=(x.repeated||0)*all;s+=q.point_cap!=null?Math.min(b,q.point_cap):b});S.acc.apb=s;aok=1}),
 t(async()=>{const h=await g('/v2/account/mounts/types'),a=await g('/v2/mounts/types?ids=all',0);S.mounts={have:a.filter(m=>h.includes(m.id)).map(m=>m.name),miss:a.filter(m=>!h.includes(m.id)).map(m=>m.name)}})]);
 await Promise.all([
 t(async()=>{await rs('items',names().flatMap(n=>S.chars[n].wid||[]));names().forEach(n=>{const o=S.chars[n];o.wp=[...new Set((o.wid||[]).map(i=>WT[((L.items[i]||{}).details||{}).type]).filter(Boolean))]})}),
@@ -190,7 +191,7 @@ t(async()=>{const[a,d]=await Promise.all([g('/v2/account/masteries'),g('/v2/mast
 t(async()=>{const[wb,wa,mc,ma]=await Promise.all([g('/v2/account/worldbosses'),g('/v2/worldbosses',0),g('/v2/account/mapchests'),g('/v2/mapchests',0)]);S.day={wb,wn:wa.length,mc,mn:ma.length}}),
 t(async()=>{S.wv=S.wv||{};S.wvt=S.wvt||{};S.wve={};await Promise.all(['daily','weekly','special'].map(async k=>{try{S.wv[k]=await g('/v2/account/wizardsvault/'+k);S.wvt[k]=Date.now();delete S.wve[k]}catch(x){S.wve[k]=x.message}}))})]);
 await t(async()=>{const pr=await g('/v2/professions?ids=all',0),ids=[...new Set(names().map(n=>S.chars[n].es).filter(Boolean))],sp=ids.length?await g('/v2/specializations?ids='+ids.join(','),0):[];names().forEach(n=>{const o=S.chars[n],e=sp.find(x=>x.id==o.es),q=pr.find(x=>x.id==o.prof);o.av=(e&&e.elite&&e.profession_icon)||(q&&q.icon)||''})});
-if(S.acc.apb!=null)S.acc.ap=S.acc.apb+dap;S.acc.t=Date.now();{const h=S.hist=S.hist||[],z=h[h.length-1];if(!z||Date.now()-z.t>6e5){h.push({t:Date.now(),g:S.acc.gold,a:S.acc.aa,p:S.acc.ap});if(h.length>300)h.shift()}}
+if(aok&&dok){const raw=S.acc.apb+dap,nv=raw+(S.acc.off||0);S.acc.raw=raw;if(S.acc.ap!=null&&nv<S.acc.ap)lg(`Erfolgspunkte: Abruf ergab ${nv} (< ${S.acc.ap}) – alter Wert bleibt`);else S.acc.ap=nv}else lg('Erfolgspunkte nicht aktualisiert: Abruf unvollständig – alter Wert bleibt');S.acc.t=Date.now();{const h=S.hist=S.hist||[],z=h[h.length-1];if(!z||Date.now()-z.t>6e5){h.push({t:Date.now(),g:S.acc.gold,a:S.acc.aa,p:S.acc.ap});if(h.length>300)h.shift()}}
 if(old.aa!=null&&old.aa!==S.acc.aa)lg(`Astraler Ruhm: ${old.aa} → ${S.acc.aa}`);
 if(old.ap!=null&&old.ap!==S.acc.ap)lg(`Erfolgspunkte: ${old.ap} → ${S.acc.ap}`);
 if(old.gold!=null&&old.gold!==S.acc.gold)lg(`Gold: ${Math.floor(old.gold/1e4)} g → ${Math.floor(S.acc.gold/1e4)} g`);
@@ -204,6 +205,7 @@ else if('resync' in d){if(S.key)sync();else{tab='set';r()}}
 else if('loadmaps' in d)lm();
 else if('rl' in d){delete D[sel];r()}
 else if('take' in d)take();
+else if('apcal' in d){const v=+$('#apv').value;if(!v||S.acc.raw==null)alert('Bitte erst synchronisieren und einen Wert eintragen.');else{S.acc.off=v-S.acc.raw;S.acc.ap=v;lg(`Erfolgspunkte abgeglichen: ${v} (Korrektur ${S.acc.off>=0?'+':''}${S.acc.off})`);r()}}
 else if('picx' in d){delete S.chars[sel].pic;lg(sel+': eigenes Profilbild entfernt');r()}
 else if('applymaps' in d)am();
 else if(d.delmap!=null){lg('Karte entfernt: '+S.maps.splice(+d.delmap,1)[0].n);r()}
