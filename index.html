@@ -37,6 +37,7 @@ ol{padding-left:22px}li{margin:5px 0}
 .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 12px}
 .t{font-weight:700;font-size:17px;width:100%}
 .log div{padding:3px 0;border-bottom:1px solid var(--br);font-size:13px}
+:root{--r-Junk:#777;--r-Basic:#333;--r-Fine:#2a6fb0;--r-Masterwork:#1a7a06;--r-Rare:#a07c00;--r-Exotic:#b86a00;--r-Ascended:#d0206f;--r-Legendary:#6a2fd0}@media(prefers-color-scheme:dark){:root{--r-Junk:#aaa;--r-Basic:#e8e8e8;--r-Fine:#62a4da;--r-Masterwork:#3fbf2a;--r-Rare:#fcd00b;--r-Exotic:#ffa405;--r-Ascended:#fb3e8d;--r-Legendary:#a98bff}}
 .av{width:40px;height:40px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:8px;border:1px solid var(--br);background:var(--in)}.dy{display:inline-block;width:14px;height:14px;border:1px solid var(--br);margin-right:3px;border-radius:2px;vertical-align:middle}.ic{width:28px;height:28px;vertical-align:middle;border-radius:4px;margin-right:6px}th[colspan]{background:var(--in);font-size:12px;color:var(--mu)}
 </style></head><body>
 <header><h1>Mein GW2-Handbuch</h1><div id=gs class=mu style="margin:-6px 0 8px"></div><nav id="nv"></nav></header><main id="v"></main>
@@ -121,17 +122,18 @@ const ids=new Set(S.maps.map(m=>m.id));names().forEach(c=>S.chars[c].done=S.char
 const L={},D={},RC={Human:'Mensch',Asura:'Asura',Charr:'Charr',Norn:'Norn',Sylvari:'Sylvari'},GN={Male:'männlich',Female:'weiblich'};
 const SL={Helm:'Helm',Shoulders:'Schulter',Coat:'Brust',Gloves:'Handschuhe',Leggings:'Beine',Boots:'Schuhe',WeaponA1:'Waffe A Haupt',WeaponA2:'Waffe A Neben',WeaponB1:'Waffe B Haupt',WeaponB2:'Waffe B Neben',Backpack:'Rücken',Accessory1:'Schmuck 1',Accessory2:'Schmuck 2',Amulet:'Amulett',Ring1:'Ring 1',Ring2:'Ring 2',HelmAquatic:'Atemgerät',WeaponAquaticA:'Unterwasser A',WeaponAquaticB:'Unterwasser B'};
 const GR=[['Rüstung','Helm Shoulders Coat Gloves Leggings Boots'],['Waffen','WeaponA1 WeaponA2 WeaponB1 WeaponB2'],['Schmuck','Backpack Accessory1 Accessory2 Amulet Ring1 Ring2'],['Unterwasser','HelmAquatic WeaponAquaticA WeaponAquaticB']].map(([t,x])=>[t,x.split(' ')]);
-const ic=x=>x&&x.icon?`<img class=ic src="${E(x.icon)}" alt="" loading=lazy>`:'',nm=(t,i)=>E(((L[t]||{})[i]||{}).name||'–');
+const ic=(x,c)=>x&&x.icon?`<img class=ic src="${E(x.icon)}" alt="" loading=lazy${c?` style="border:2px solid ${c}"`:''}>`:'',nm=(t,i)=>E(((L[t]||{})[i]||{}).name||'–');
 async function rs(t,ids){L[t]=L[t]||{};const m=[...new Set(ids.filter(x=>x!=null&&!L[t][x]))],ch=[];for(let i=0;i<m.length;i+=150)ch.push(m.slice(i,i+150).join(','));(await Promise.all(ch.map(c=>g(`/v2/${t}?ids=${c}`,0).catch(()=>[])))).flat().forEach(x=>L[t][x.id]=x)}
 async function ld(c){const e=encodeURIComponent(c),d=D[c]={},er=[];
 const t=async(k,p)=>{try{d[k]=await g(`/v2/characters/${e}/${p}`)}catch(x){er.push(k+' ('+x.message.slice(-3)+')')}};
 await Promise.all([t('core','core'),t('eq','equipmenttabs?tabs=all'),t('bt','buildtabs?tabs=all')]);
 const q=(d.eq||[]).flatMap(x=>x.equipment||[]),b=(d.bt||[]).map(x=>x.build||{}),sp=b.flatMap(x=>(x.specializations||[]).filter(Boolean));
 await Promise.all([rs('items',q.flatMap(x=>[x.id,...(x.upgrades||[]),...(x.infusions||[])])),rs('skins',q.map(x=>x.skin)),rs('colors',q.flatMap(x=>x.dyes||[])),rs('specializations',sp.map(s=>s.id)),rs('traits',sp.flatMap(s=>s.traits||[])),rs('skills',b.flatMap(x=>{const k=x.skills||{};return[k.heal,...(k.utilities||[]),k.elite]}))]);
-await rs('itemstats',q.map(x=>x.stats?x.stats.id:((L.items[x.id]||{}).details||{}).infix_upgrade?.id));
+await Promise.all([rs('itemstats',q.map(x=>x.stats?x.stats.id:((L.items[x.id]||{}).details||{}).infix_upgrade?.id)),rs('skins',q.map(x=>(L.items[x.id]||{}).default_skin))]);
 d.er=er;d.ok=1}
-const rw=q=>{const it=L.items[q.id]||{},sk=(L.skins||{})[q.skin],sid=q.stats?q.stats.id:(it.details||{}).infix_upgrade?.id,up=[...(q.upgrades||[]),...(q.infusions||[])].map(u=>nm('items',u)),dy=(q.dyes||[]).map(i=>{const c=(L.colors||{})[i];return c&&c.cloth?`<i class=dy title="${E(c.name)}" style="background:rgb(${c.cloth.rgb.join(',')})"></i>`:''}).join('');
-return `<tr><td>${SL[q.slot]||E(q.slot)}<td>${ic(it)}${E(it.name||'Item '+q.id)}<br><small>${nm('itemstats',sid)}${up.length?' · '+up.join(', '):''}</small><td>${ic(sk)}${sk?E(sk.name):'<small>Standard</small>'} ${dy}`};
+const rc=i=>i&&i.rarity?`var(--r-${i.rarity})`:'inherit';
+const rw=q=>{const it=L.items[q.id]||{},sk=(L.skins||{})[q.skin||it.default_skin],tm=q.skin&&q.skin!=it.default_skin,sid=q.stats?q.stats.id:(it.details||{}).infix_upgrade?.id,up=[...(q.upgrades||[]),...(q.infusions||[])].map(u=>`<span style="color:${rc(L.items[u])}">${nm('items',u)}</span>`),dy=(q.dyes||[]).map(i=>{const c=(L.colors||{})[i];return c&&c.cloth?`<i class=dy title="${E(c.name)}" style="background:rgb(${c.cloth.rgb.join(',')})"></i>`:''}).join('');
+return `<tr><td>${SL[q.slot]||E(q.slot)}<td>${ic(it,rc(it))}<span style="color:${rc(it)}">${E(it.name||'Item '+q.id)}</span><br><small>${nm('itemstats',sid)}${up.length?' · '+up.join(', '):''}</small><td>${ic(sk)}${sk?E(sk.name)+`<small> · ${tm?'transmutiert':'Original-Aussehen'}</small>`:'<small>kein Skin</small>'} ${dy}`};
 function r(){$('#nv').innerHTML=T.map(([k,l])=>`<button data-tab=${k} class="${k==tab?'on':''}">${l}</button>`).join('');$('#v').innerHTML=V[tab]()}
 function tg(c,id,v){const o=S.chars[c],m=S.maps.find(x=>x.id==id);o.done=o.done.filter(x=>x!=id);if(v)o.done.push(id);lg(`${c}: ${m.n} ${v?'abgeschlossen':'wieder geöffnet'} (jetzt ${pct(c)} %)`);r()}
 function auto(){const n=names(),k={};n.forEach(c=>k[c]=0);let z=0;[...S.maps].sort((a,b)=>b.p-a.p).forEach(m=>{const o=n.filter(c=>!S.chars[c].done.includes(m.id)).sort((a,b)=>k[a]-k[b]||wcp(b)-wcp(a));m.a=o[0]||'';if(o[0]){k[o[0]]++;z++}});lg(`Karten automatisch verteilt (${z} offene)`);r()}
